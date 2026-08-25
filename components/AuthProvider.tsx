@@ -7,8 +7,6 @@ import { getToken, getUser, setSession, clearSession, StoredUser } from '@/lib/s
 interface AuthContextValue {
   token: string | null;
   user: StoredUser | null;
-  // Restoration from storage happens after mount, not before first render.
-  // `ready` is how a guard tells "not signed in" apart from "haven't checked yet".
   ready: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
@@ -17,7 +15,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 interface LoginResponse {
-  access_token: string;
+  accessToken: string;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -37,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
     const nextUser: StoredUser = { email };
-    setSession(res.access_token, nextUser);
-    setToken(res.access_token);
+    setSession(res.accessToken, nextUser);
+    setToken(res.accessToken);
     setUser(nextUser);
   }
 

@@ -5,9 +5,11 @@ import { useAuth } from '@/components/AuthProvider';
 import { api, ApiError } from '@/lib/api';
 
 interface Task {
-  id: string;
+  id: number;
   title: string;
   status: string;
+  priority: number;
+  project?: { id: number; name: string };
 }
 
 type ListState =
@@ -20,6 +22,8 @@ export default function TasksPage() {
   const [state, setState] = useState<ListState>({ kind: 'loading' });
   const [statusFilter, setStatusFilter] = useState('');
   const [title, setTitle] = useState('');
+  const [priority, setPriority] = useState('3');
+  const [projectId, setProjectId] = useState('1');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -27,8 +31,6 @@ export default function TasksPage() {
   async function load() {
     setState({ kind: 'loading' });
     try {
-      // The filter is a query param on the request — filtering happens
-      // in the API, never on tasks already downloaded to the browser.
       const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
       const tasks = await api<Task[]>(`/tasks${query}`);
       setState({ kind: 'ready', tasks });
@@ -53,7 +55,11 @@ export default function TasksPage() {
     try {
       const created = await api<Task>('/tasks', {
         method: 'POST',
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({
+          title,
+          priority: Number(priority),
+          projectId: Number(projectId),
+        }),
       });
       if (state.kind === 'ready') {
         setState({ kind: 'ready', tasks: [...state.tasks, created] });
@@ -72,11 +78,10 @@ export default function TasksPage() {
       } else {
         setFormError('Failed to create task.');
       }
-      // form is intentionally not cleared — the typed value stays put
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: number) {
     setDeleteError(null);
     try {
       await api<void>(`/tasks/${id}`, { method: 'DELETE' });
@@ -108,7 +113,8 @@ export default function TasksPage() {
           className="border rounded px-2 py-1"
         >
           <option value="">All</option>
-          <option value="open">Open</option>
+          <option value="todo">Todo</option>
+          <option value="in_progress">In progress</option>
           <option value="done">Done</option>
         </select>
       </div>
@@ -123,6 +129,35 @@ export default function TasksPage() {
         {fieldErrors.title && (
           <p className="text-red-600 text-sm">{fieldErrors.title.join(' ')}</p>
         )}
+
+        <div className="flex gap-3">
+          <div>
+            <label htmlFor="priority" className="block text-xs">Priority (1-5)</label>
+            <select
+              id="priority"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              className="border rounded px-2 py-1"
+            >
+              {[1, 2, 3, 4, 5].map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="project" className="block text-xs">Project</label>
+            <select
+              id="project"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="border rounded px-2 py-1"
+            >
+              <option value="1">Website Redesign</option>
+              <option value="2">Mobile App Launch</option>
+            </select>
+          </div>
+        </div>
+
         {formError && (
           <p className="text-red-600 text-sm" role="alert">
             {formError}
